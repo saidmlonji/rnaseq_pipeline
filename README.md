@@ -60,20 +60,26 @@ rnaseq_pipeline/
 
 ### 1. Create and Activate Conda Environment
 
-conda create -n rnaseq_pipeline -c bioconda -c conda-forge fastqc bowtie2 samtools sra-tools -y
-conda activate rnaseq_pipeline
+    ```bash
+    
+    conda create -n rnaseq_pipeline -c bioconda -c conda-forge fastqc bowtie2 samtools sra-tools -y
+    conda activate rnaseq_pipeline
 
 ### 2. Download Raw FASTQ Files
 
-cd ~/projects/rnaseq_pipeline/data
+    ```bash
+    
+    cd ~/projects/rnaseq_pipeline/data
 
-wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_1.fastq.gz
-wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_2.fastq.gz
+    wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_1.fastq.gz
+    wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_2.fastq.gz
 
 ### 3. Quality Check with FastQC
 
-mkdir -p results/qc
-fastqc data/SRR390728_1.fastq.gz data/SRR390728_2.fastq.gz -o results/qc/
+    ```bash
+    
+    mkdir -p results/qc
+    fastqc data/SRR390728_1.fastq.gz data/SRR390728_2.fastq.gz -o results/qc/
 
 ### 4. Reference Genome Setup
 
@@ -83,81 +89,89 @@ fastqc data/SRR390728_1.fastq.gz data/SRR390728_2.fastq.gz -o results/qc/
 
 ### 5. Align Reads Using Bowtie2
 
-mkdir -p results/alignments
-bowtie2 -x ref/GRCh38_noalt_as \
-  -1 data/SRR390728_1.fastq.gz \
-  -2 data/SRR390728_2.fastq.gz \
-  -S results/alignments/SRR390728.sam
-
+     ```bash
+     
+     mkdir -p results/alignments
+     bowtie2 -x ref/GRCh38_noalt_as \
+     -1 data/SRR390728_1.fastq.gz \
+     -2 data/SRR390728_2.fastq.gz \
+     -S results/alignments/SRR390728.sam
+ 
 ### 6. Convert SAM to Sorted BAM and Index
 
-samtools view -bS results/alignments/SRR390728.sam > results/alignments/SRR390728.bam
-samtools sort results/alignments/SRR390728.bam -o results/alignments/SRR390728_sorted.bam
-samtools index results/alignments/SRR390728_sorted.bam
+      ```bash
+
+      samtools view -bS results/alignments/SRR390728.sam > results/alignments/SRR390728.bam
+      samtools sort results/alignments/SRR390728.bam -o results/alignments/SRR390728_sorted.bam
+      samtools index results/alignments/SRR390728_sorted.bam
 
 ### 7. BAM Read Coverage Visualization in R
 
-```r
+       ```r
+       
+      # Install packages
+        install.packages("BiocManager")
+        BiocManager::install(c("Rsamtools", "GenomicAlignments", "Gviz"))
 
-# Install packages
-install.packages("BiocManager")
-BiocManager::install(c("Rsamtools", "GenomicAlignments", "Gviz"))
+      # Load and plot coverage
+        library(Rsamtools)
+        library(GenomicAlignments)
+        library(Gviz)
 
-# Load and plot coverage
-library(Rsamtools)
-library(GenomicAlignments)
-library(Gviz)
+        bamfile <- "results/alignments/SRR390728_sorted.bam"
+        reads <- readGAlignments(bamfile)
+        cov <- coverage(reads)
 
-bamfile <- "results/alignments/SRR390728_sorted.bam"
-reads <- readGAlignments(bamfile)
-cov <- coverage(reads)
-
-# Plot (example for chr1)
-chr1_cov <- cov[["chr1"]]
-
+      # Plot (example for chr1)
+        chr1_cov <- cov[["chr1"]]
+ 
 
 ### 8. Generate Gene Counts with featureCounts
 
-BiocManager::install("Rsubread")
-library(Rsubread)
+       ```r
+       
+       BiocManager::install("Rsubread")
+       library(Rsubread)
 
-fc <- featureCounts(
-  files = "results/alignments/SRR390728_sorted.bam",
-  annot.ext = "ref/Homo_sapiens.GRCh38.111.gtf",
-  isGTFAnnotationFile = TRUE,
-  GTF.featureType = "exon",
-  GTF.attrType = "gene_id",
-  useMetaFeatures = TRUE
-)
+       fc <- featureCounts(
+       files = "results/alignments/SRR390728_sorted.bam",
+       annot.ext = "ref/Homo_sapiens.GRCh38.111.gtf",
+       isGTFAnnotationFile = TRUE,
+       GTF.featureType = "exon",
+       GTF.attrType = "gene_id",
+       useMetaFeatures = TRUE
+       )
 
-head(fc$counts)
+       head(fc$counts)
 
 ### 9. Differential Expression Using DESeq2
 
-BiocManager::install("DESeq2")
-library(DESeq2)
+       ```r
+       
+       BiocManager::install("DESeq2")
+       library(DESeq2)
 
-# Example simulated count matrix
-counts <- matrix(rnbinom(1000, mu=10, size=1), ncol=6)
-colnames(counts) <- c("A1", "A2", "A3", "B1", "B2", "B3")
+    # Example simulated count matrix
+      counts <- matrix(rnbinom(1000, mu=10, size=1), ncol=6)
+      colnames(counts) <- c("A1", "A2", "A3", "B1", "B2", "B3")
 
-coldata <- data.frame(
-  row.names = colnames(counts),
-  condition = factor(c("control", "control", "control", "treated", "treated", "treated"))
-)
+      coldata <- data.frame(
+      row.names = colnames(counts),
+      condition = factor(c("control", "control", "control", "treated", "treated", "treated"))
+      )
 
-dds <- DESeqDataSetFromMatrix(countData = counts, colData = coldata, design = ~ condition)
-dds <- DESeq(dds)
-res <- results(dds)
+      dds <- DESeqDataSetFromMatrix(countData = counts, colData = coldata, design = ~ condition)
+      dds <- DESeq(dds)
+      res <- results(dds)
 
-# MA Plot
-plotMA(res)
+    # MA Plot
+      plotMA(res)
 
-# Volcano Plot
-plot(res$log2FoldChange, -log10(res$pvalue),
-     pch = 20, col = ifelse(res$padj < 0.05, "red", "black"),
-     xlab = "log2 Fold Change", ylab = "-log10 p-value",
-     main = "Volcano Plot")
+    # Volcano Plot
+      plot(res$log2FoldChange, -log10(res$pvalue),
+      pch = 20, col = ifelse(res$padj < 0.05, "red", "black"),
+      xlab = "log2 Fold Change", ylab = "-log10 p-value",
+      main = "Volcano Plot")
 
 
 
