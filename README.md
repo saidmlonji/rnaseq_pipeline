@@ -55,34 +55,34 @@ Raw data was downloaded from the SRA archive:
 wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_1.fastq.gz
 wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_2.fastq.gz
 
----
 
 ## Pipeline Workflow
 
-Step 1: Set up Environment
+**Step 1: Set up Environment**
 
 ```bash
 conda create -n rnaseq_pipeline -c bioconda -c conda-forge fastqc bowtie2 samtools sra-tools -y
 conda activate rnaseq_pipeline
 
-Step 2: Quality Control
+**Step 2: Quality Control**
 ```bash
 fastqc data/SRR390728_1.fastq data/SRR390728_2.fastq -o results/qc/
 
-Step 3: Read Alignment
+**Step 3: Read Alignment**
 ```bash
 bowtie2 -x ref/GRCh38_noalt_as \
   -1 data/SRR390728_1.fastq \
   -2 data/SRR390728_2.fastq \
   -S results/alignments/SRR390728.sam
 
-Step 4: Convert and Sort BAM
+**Step 4: Convert and Sort BAM**
 ```bash
 samtools view -bS results/alignments/SRR390728.sam | samtools sort -o results/alignments/SRR390728_sorted.bam
 samtools index results/alignments/SRR390728_sorted.bam
 
-R-Based Analysis
-Step 5: Launch RStudio via WSL
+## R-Based Analysis
+
+**Step 5: Launch RStudio via WSL**
 Open rnaseq_pipeline.Rproj inside WSL path and run the scripts in order:
 
 1. RNAseq_analysis.R
