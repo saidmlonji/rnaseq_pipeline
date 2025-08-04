@@ -55,8 +55,9 @@ Raw data was downloaded from the SRA archive:
 wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_1.fastq.gz
 wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR390/008/SRR390728/SRR390728_2.fastq.gz
 
-Pipeline Workflow
+## Pipeline Workflow
 Step 1: Set up Environment
+
 ```bash
 conda create -n rnaseq_pipeline -c bioconda -c conda-forge fastqc bowtie2 samtools sra-tools -y
 conda activate rnaseq_pipeline
